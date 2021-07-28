@@ -20,6 +20,11 @@ import android.widget.TableRow;
 
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.mlkit.common.model.DownloadConditions;
+import com.google.mlkit.nl.translate.TranslateLanguage;
+import com.google.mlkit.nl.translate.Translation;
+import com.google.mlkit.nl.translate.Translator;
+import com.google.mlkit.nl.translate.TranslatorOptions;
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.label.ImageLabel;
 import com.google.mlkit.vision.label.ImageLabeler;
@@ -43,6 +48,9 @@ public class MainActivity extends AppCompatActivity {
     private boolean FilesPermit = true;
     private Uri imageUri = null;
     private ImageView img;
+    ArrayList<String[]> lista;
+
+    private Translator EnglishToSpanish = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,6 +58,9 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         //tratar de obtener permisos para archivos
         requestPermitStorage();
+        //Inicia la descarga de los paquetes para traducir
+        initTraslate();
+
         //establecer como variable global el contenedor de imagenes
         img = this.findViewById(R.id.imageView);
         //obtener referencia del botón
@@ -57,7 +68,7 @@ public class MainActivity extends AppCompatActivity {
         //asignar evento al botón
         button.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                if(FilesPermit) {
+                if (FilesPermit) {
                     //declarar el nuevo intent, el cual se encargará de abrir el visualizador de archivos
                     //para cargar una nueva imagen
                     Intent gallery = new Intent(Intent.ACTION_GET_CONTENT, MediaStore.Images.Media.INTERNAL_CONTENT_URI);
@@ -71,7 +82,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void requestPermitStorage(){
+    private void requestPermitStorage() {
         Alerts.MessageToast(MainActivity.this, "No tiene permiso a archivos :c");
         //solicitar acceso a archivos del dispositivo
         ActivityCompat.requestPermissions(MainActivity.this,
@@ -82,21 +93,21 @@ public class MainActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         //verifica si el resultado de la petición fue satisfactorio
-        if(resultCode == Activity.RESULT_OK){
+        if (resultCode == Activity.RESULT_OK) {
             //verifica si se ha seleccionado una imagen
-            if(requestCode == CODES[0]){
+            if (requestCode == CODES[0]) {
                 //obtener imageUri
                 imageUri = data.getData();
-                if(img!=null){
+                if (img != null) {
                     try {
                         //ubicar imagen en contenedor ImageView
                         img.setImageURI(imageUri);
-                        code();
-                    }catch (Exception ex){
+                        identifyLabels();
+                    } catch (Exception ex) {
                         MyLogs.error("ImgSetUri: " + ex.getMessage());
                     }
                 }
-            } else if(resultCode == CODES[1]){
+            } else if (resultCode == CODES[1]) {
                 //obtiene respuesta de la imagen
                 Alerts.MessageToast(MainActivity.this, "Permiso aceptado");
                 FilesPermit = true;
@@ -104,16 +115,20 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void code(){
+    /*******************************************************************************************
+     *                                  Etiquetado de imágenes                                 *
+     *******************************************************************************************/
+
+    private void identifyLabels() {
         InputImage image = null;
         try {
             //obtiene el input imagen a partir de la uri
             image = InputImage.fromFilePath(MainActivity.this, imageUri);
         } catch (IOException e) {
-            MyLogs.error("IOimg: "+ e.getMessage());
+            MyLogs.error("IOimg: " + e.getMessage());
         }
         //verifica si se obtuvo el InputImage
-        if(image!=null){
+        if (image != null) {
             // código del algoritmo
             ImageLabeler labeler = ImageLabeling.getClient(ImageLabelerOptions.DEFAULT_OPTIONS);
             labeler.process(image)
@@ -122,19 +137,25 @@ public class MainActivity extends AppCompatActivity {
                         public void onSuccess(List<ImageLabel> labels) {
                             MyLogs.info("-------------------------------------");
                             //se declara una lista de objetos, para crear la tabla
-                            ArrayList<String[]> lista = new ArrayList<>();
+                            lista = new ArrayList<>();
+                            boolean flagTraslate = EnglishToSpanish != null;
                             //se recorren los resultados obtenidos por el servicio
                             for (ImageLabel label : labels) {
                                 int index = label.getIndex();
                                 String text = label.getText();
                                 float confidence = label.getConfidence();
                                 //se agregan los items a la lista
-                                lista.add(new String[] {String.valueOf(index), text, String.format("%.5g%n", confidence)});
-
-                                MyLogs.info(index+": "+text + " => IC:"+ confidence);
+                                if (flagTraslate) {
+                                    lista.add(new String[]{String.valueOf(index), text, "", String.format("%.5g%n", confidence)});
+                                    traslateList(text, lista.size() - 1);
+                                } else {
+                                    lista.add(new String[]{String.valueOf(index), text, String.format("%.5g%n", confidence)});
+                                }
+                                MyLogs.info(index + ": " + text + " => IC:" + confidence);
                             }
-                            //se envía la lista de datos a la tabla
-                            tableAdapt(lista);
+                            if (!flagTraslate) {
+                                tableAdapt(lista, flagTraslate);
+                            }
                         }
                     })
                     .addOnFailureListener(new OnFailureListener() {
@@ -146,13 +167,17 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void tableAdapt(ArrayList<String[]> lista){
+    private void tableAdapt(ArrayList<String[]> lista, boolean isTraslateAvalible) {
         //obtener la referencia de la tabla en el activity
-        TableLayout table = (TableLayout)findViewById(R.id.table);
+        TableLayout table = (TableLayout) findViewById(R.id.table);
         //declaramos el objeto que nos creará la tabla dinámica
         TableModel tbModel = new TableModel(MainActivity.this, table);
         //indicamos los encabezados de la tabla
-        tbModel.setHeaders(new String[]{"N", "Object", "Accuracy"});
+        if (isTraslateAvalible) {
+            tbModel.setHeaders(new String[]{"N", "Object", "Traslated", "Accuracy"});
+        } else {
+            tbModel.setHeaders(new String[]{"N", "Object", "Accuracy"});
+        }
         //enviamos los datos del cuerpo de la tabla
         tbModel.setRows(lista);
         //configuramos la tabla, colores del encabezado y el cuerpo
@@ -166,5 +191,85 @@ public class MainActivity extends AppCompatActivity {
         tbModel.makeTable();
 
         MyLogs.info(" FIN ");
+    }
+
+    /*******************************************************************************************
+     *                              Traducción en el dispositivo                               *
+     *******************************************************************************************/
+
+    private void initTraslate() {
+        // gif de carga
+        Alerts.LoadingDialog(MainActivity.this);
+        Alerts.showLoading();
+        //descarga
+        TranslatorOptions options =
+                new TranslatorOptions.Builder()
+                        .setSourceLanguage(TranslateLanguage.ENGLISH)
+                        .setTargetLanguage(TranslateLanguage.SPANISH)
+                        .build();
+        this.EnglishToSpanish = Translation.getClient(options);
+
+        DownloadConditions conditions = new DownloadConditions.Builder()
+                .requireWifi()
+                .build();
+        this.EnglishToSpanish.downloadModelIfNeeded(conditions)
+                .addOnSuccessListener(
+                        new OnSuccessListener<Void>() {
+                            @Override
+                            public void onSuccess(Void v) {
+                                Alerts.closeLoading();
+                                Alerts.MessageToast(MainActivity.this, "Paquete Descargado");
+                            }
+                        })
+                .addOnFailureListener(
+                        new OnFailureListener() {
+                            @Override
+                            public void onFailure(Exception e) {
+                                Alerts.closeLoading();
+                                Alerts.MessageToast(MainActivity.this, "ErrPackTras: " + e.getMessage());
+                            }
+                        });
+    }
+
+    private void traslateList(String text, int index) {
+        if (this.EnglishToSpanish != null) {
+
+            this.EnglishToSpanish.translate(text)
+                    .addOnSuccessListener(
+                            new OnSuccessListener<String>() {
+                                @Override
+                                public void onSuccess(String translatedText) {
+                                    //verifica la lista de elementos y que el indice buscado esté
+                                    //entre los límites de la lista
+                                    if (lista != null) {
+                                        if (index >= 0 && index < lista.size()) {
+                                            //obtiene los items
+                                            String[] items = lista.get(index);
+                                            if (items != null) {
+                                                //agrega la traducción al vector
+                                                items[2] = translatedText;
+                                            }
+                                        }
+                                        if (lista.size() - 1 == index) {
+                                            //se envía la lista de datos a la tabla
+                                            tableAdapt(lista, true);
+                                        }
+                                    }
+                                }
+                            })
+                    .addOnFailureListener(
+                            new OnFailureListener() {
+                                @Override
+                                public void onFailure(Exception e) {
+                                    Alerts.MessageToast(MainActivity.this, "ErrTrasWord: " + e.getMessage());
+                                    if (lista.size() - 1 == index) {
+                                        //se envía la lista de datos a la tabla
+                                        tableAdapt(lista, true);
+                                    }
+                                }
+                            });
+        } else {
+            Alerts.MessageToast(MainActivity.this, "Traductor no disponible");
+        }
     }
 }
