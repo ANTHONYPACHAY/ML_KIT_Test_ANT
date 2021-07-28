@@ -47,4 +47,6 @@ dependencies {
 
     //implementation 'com.google.firebase:firebase-functions:20.0.0'
     implementation 'com.google.mlkit:image-labeling:17.0.5'
+
+    implementation 'com.google.mlkit:translate:16.1.2'
 }
