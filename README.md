@@ -22,6 +22,8 @@ Traduce texto de un idioma a otro
 
 > La aplicación funciona de forma sencilla, el usuario da clic al botón buscar, busca y selecciona la imagen. En ese momento esta es cargada y procesada. Mostrando los resultados como los que se observan en las siguientes imágenes.
 
+> La tabla contiene el indice, el objeto, su traducción al español y la precisión del resultado mostrado.
+
 >><img src="https://raw.githubusercontent.com/ANTHONYPACHAY/ML_KIT_Test_ANT/master/app/src/main/res/drawable/inicio.png?raw=true" alt="inicio" Height="400"/>
 
 
