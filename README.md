@@ -1,4 +1,5 @@
 # ML_KIT_Test_ANT
+
 Uso de machine Learning [Etiquetado de imágenes] con firebase
 
 Para esta práctica se utilizaron dos servicios que firebase pone a nuestra disposición:
@@ -10,6 +11,8 @@ Identifica objetos, ubicaciones, actividades, especies de animales, productos y 
 **Traducción en el dispositivo**
 
 Traduce texto de un idioma a otro
+
+>> _**Nota:** Al final del archivo, se podrán ver las notas de los ultimos cambios realizados_
 
 * ### Gif de carga
 
@@ -40,3 +43,27 @@ Traduce texto de un idioma a otro
 >><img src="https://raw.githubusercontent.com/ANTHONYPACHAY/ML_KIT_Test_ANT/master/app/src/main/res/drawable/gataacostada.png?raw=true" alt="gataacostada" Height="400"/>
 
 >><img src="https://raw.githubusercontent.com/ANTHONYPACHAY/ML_KIT_Test_ANT/master/app/src/main/res/drawable/serlfieee.png?raw=true" alt="serlfieee" Height="400"/>
+
+
+
+
+
+## PARCHE
+
+* Se agregó un nuevo botón para poder tomar la foto en ese momento
+
+Gracias a el último cambio, el usuario podra tomar un foto y esta imagen podra ser procesada por el label detection, mostrando asi el resultado de los objetos encontrados.
+
+>**Nuevas pantallas **
+
+* **Nuevo activity de inicio**
+
+>><img src="https://raw.githubusercontent.com/ANTHONYPACHAY/ML_KIT_Test_ANT/master/app/src/main/res/drawable/actu.png?raw=true" alt="inicio" Height="400"/>
+
+* **Accediendo a la camara**
+
+>><img src="https://raw.githubusercontent.com/ANTHONYPACHAY/ML_KIT_Test_ANT/master/app/src/main/res/drawable/take.png?raw=true" alt="inicio" Height="400"/>
+
+* **Resultado del análisis**
+
+>><img src="https://raw.githubusercontent.com/ANTHONYPACHAY/ML_KIT_Test_ANT/master/app/src/main/res/drawable/usocamerap.png?raw=true" alt="inicio" Height="400"/>
