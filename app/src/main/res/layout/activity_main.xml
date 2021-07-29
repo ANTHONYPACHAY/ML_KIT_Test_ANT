@@ -23,14 +23,31 @@
             android:text="Seleccionar una imagen:"
             tools:layout_editor_absoluteX="99dp"
             tools:layout_editor_absoluteY="177dp" />
-
-        <Button
-            android:id="@+id/btnsearchpicture"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Buscar"
-            tools:layout_editor_absoluteX="116dp"
-            tools:layout_editor_absoluteY="76dp" />
+            android:orientation="horizontal"
+            android:gravity="center"
+            >
+            <Button
+                android:id="@+id/btnsearchpicture"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Buscar"
+                tools:layout_editor_absoluteX="116dp"
+                tools:layout_editor_absoluteY="76dp"
+                android:layout_marginRight="15sp"
+                />
+            <Button
+                android:id="@+id/btntakepicture"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:backgroundTint="@color/btn_warning"
+                android:text="Tomar foto"
+                tools:layout_editor_absoluteX="116dp"
+                tools:layout_editor_absoluteY="76dp" />
+        </LinearLayout>
+
 
         <ImageView
             android:id="@+id/imageView"

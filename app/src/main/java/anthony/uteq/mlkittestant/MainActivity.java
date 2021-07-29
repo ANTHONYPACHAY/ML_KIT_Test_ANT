@@ -8,6 +8,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -44,9 +45,8 @@ public class MainActivity extends AppCompatActivity {
 
     //0: respuesta a carga de imagen
     //1: respuesta solicitud de permiso a archivos
-    private int[] CODES = {100, 1};
+    private int[] CODES = {50, 100, 200, 250};
     private boolean FilesPermit = true;
-    private Uri imageUri = null;
     private ImageView img;
     ArrayList<String[]> lista;
 
@@ -56,7 +56,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        //tratar de obtener permisos para archivos
+        //tratar de obtener permisos para archivos y la camara
         requestPermitStorage();
         //Inicia la descarga de los paquetes para traducir
         initTraslate();
@@ -76,8 +76,25 @@ public class MainActivity extends AppCompatActivity {
                     gallery.setType("Image/*");
                     //se ejecuta el intent
                     startActivityForResult(gallery, CODES[0]);
+                } else {
+                    Alerts.MessageToast(MainActivity.this, "no tienes permiso");
                 }
                 //startActivity(gallery);
+            }
+        });
+        Button buttonT = (Button) findViewById(R.id.btntakepicture);
+        buttonT.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                    Intent takePic = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                    if (takePic.resolveActivity(getPackageManager()) != null) {
+                        startActivityForResult(takePic, CODES[2]);
+                    }else {
+                        Alerts.MessageToast(MainActivity.this, "mal intent");
+                    }
+                } else {
+                    Alerts.MessageToast(MainActivity.this, "no tienes permiso");
+                }
             }
         });
     }
@@ -86,7 +103,10 @@ public class MainActivity extends AppCompatActivity {
         Alerts.MessageToast(MainActivity.this, "No tiene permiso a archivos :c");
         //solicitar acceso a archivos del dispositivo
         ActivityCompat.requestPermissions(MainActivity.this,
-                new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, CODES[1]);
+                new String[]{
+                        Manifest.permission.READ_EXTERNAL_STORAGE,
+                        Manifest.permission.CAMERA
+                }, CODES[1]);
     }
 
     @Override
@@ -97,36 +117,54 @@ public class MainActivity extends AppCompatActivity {
             //verifica si se ha seleccionado una imagen
             if (requestCode == CODES[0]) {
                 //obtener imageUri
-                imageUri = data.getData();
+                Uri imageUri = data.getData();
                 if (img != null) {
                     try {
                         //ubicar imagen en contenedor ImageView
                         img.setImageURI(imageUri);
-                        identifyLabels();
+                        InputImage image = null;
+                        try {
+                            //obtiene el input imagen a partir de la uri
+                            image = InputImage.fromFilePath(MainActivity.this, imageUri);
+                        } catch (IOException e) {
+                            MyLogs.error("IOimg: " + e.getMessage());
+                        }
+                        identifyLabels(image);
                     } catch (Exception ex) {
                         MyLogs.error("ImgSetUri: " + ex.getMessage());
                     }
                 }
-            } else if (resultCode == CODES[1]) {
+            } else if (requestCode == CODES[1]) {
                 //obtiene respuesta de la imagen
                 Alerts.MessageToast(MainActivity.this, "Permiso aceptado");
                 FilesPermit = true;
+            } else if (requestCode == CODES[2]) {
+                //obtiene respuesta de la imagen
+                Bundle extras = data.getExtras();
+                Bitmap imgBitMap = (Bitmap) extras.get("data");
+                if (img != null) {
+                    InputImage image = null;
+                    try {
+                        //ubicar imagen en contenedor ImageView
+                        img.setImageBitmap(imgBitMap);
+                        //obtiene el input imagen a partir de un bitMap
+                        image = InputImage.fromBitmap(imgBitMap, 0);
+                    } catch (Exception ex) {
+                        MyLogs.error("ImgSetUri: " + ex.getMessage());
+                    }
+                    identifyLabels(image);
+                }
             }
         }
+        MyLogs.error("resultCode: " + resultCode);
     }
 
     /*******************************************************************************************
      *                                  Etiquetado de imágenes                                 *
      *******************************************************************************************/
 
-    private void identifyLabels() {
-        InputImage image = null;
-        try {
-            //obtiene el input imagen a partir de la uri
-            image = InputImage.fromFilePath(MainActivity.this, imageUri);
-        } catch (IOException e) {
-            MyLogs.error("IOimg: " + e.getMessage());
-        }
+    private void identifyLabels(InputImage image) {
+
         //verifica si se obtuvo el InputImage
         if (image != null) {
             // código del algoritmo
@@ -164,6 +202,8 @@ public class MainActivity extends AppCompatActivity {
                             Alerts.MessageToast(MainActivity.this, "MLError: " + e.getMessage());
                         }
                     });
+        }else{
+            Alerts.MessageToast(MainActivity.this, "Imagen no disponible");
         }
     }
 
